@@ -1,0 +1,28 @@
+module.exports = {
+  type: process.env.TYPEORM_DB_CONNECTION,
+  host: process.env.TYPEORM_DB_HOST,
+  username: process.env.TYPEORM_DB_USERNAME,
+  password: process.env.TYPEORM_DB_PASSWORD,
+  port: process.env.TYPEORM_DB_PORT,
+  sid: process.env.TYPEORM_DB_SID,
+  synchronize: false,
+  logging: false,
+  entities: ['src/entity/**/*.ts'],
+  migrations: ['src/migration/**/*.ts'],
+  subscribers: ['src/subscriber/**/*.ts'],
+  cli: {
+    entitiesDir: ['src/entity'],
+    migrationsDir: ['src/migration'],
+    subscribersDir: ['src/subscriber'],
+  },
+  extra: {
+    homogeneous: true,
+    poolAlias: 'default',
+    poolIncrement: 1,
+    poolMax: 10,
+    poolMin: 0,
+    poolPingInterval: 60,
+    poolSize: 10,
+    poolTimeout: 60,
+  },
+}
