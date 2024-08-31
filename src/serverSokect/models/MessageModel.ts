@@ -39,13 +39,19 @@ const messageSchema = new Schema(
       type: String,
       required: false,
     },
+    Estado: {
+      type: String,
+      required: false,
+      default: "Active",
+    },
+
     message_type: {
       type: Number,
       required: true,
       enum: [1, 2], 
     },
     media:  {
-      type:[ mediaObjSchema],
+      type:[mediaObjSchema],
       required: false,
     },
     read: { type: Boolean, default: false },

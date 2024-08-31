@@ -26,22 +26,87 @@ export const getUsernamesWithMessages = async (req: Request, res: Response) => {
   }
 };
 export const getMessages = async (req: Request, res: Response) => {
+  try {
+    const { fromId, toId } = req.params;
+
+    const messages = await Message.find({
+      $and: [
+        {
+          $or: [
+            { from: fromId, to: toId },
+            { from: toId, to: fromId },
+          ],
+        },
+        { Estado: 'Active' },
+      ],
+    }).sort({ createdAt: 1 });
+
+    return res.send(messages);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send({ message: 'Internal server error' });
+  }
+};
+
+  export const updateMessageChatStatusToInactive = async (req: Request, res: Response) => {
     try {
-      const { fromId, toId } = req.params;
+      const { fromId, toId } = req.body;
   
-      const messages = await Message.find({
-        $or: [
-          { from: fromId, to: toId },
-          { from: toId, to: fromId },
-        ],
-      }).sort({ createdAt: 1 });
+      await Message.updateMany(
+        {
+          $or: [
+            { from: fromId, to: toId },
+            { from: toId, to: fromId },
+          ],
+        },
+        { Estado: 'Inactive' }
+      );
   
-      return res.send(messages);
+      return res.send({ message: 'Estado de los mensajes actualizado a Inactive' });
     } catch (error) {
       console.log(error);
       return res.status(500).send({ message: 'Internal server error' });
     }
   };
+
+  export const updateMessageStatusToInactive = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.body;
+  
+      await Message.updateOne(
+        { _id: id },
+        { Estado: 'Inactive' }
+      );
+  
+      return res.send({ message: 'Estado del mensaje actualizado a Inactive' });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).send({ message: 'Internal server error' });
+    }
+  };
+
+  export const editMessageById = async (req: Request, res: Response) => {
+    try {
+      const {id, newContent } = req.body;
+  
+      // Actualizar el contenido del mensaje directamente
+      const updatedMessage = await Message.findByIdAndUpdate(
+        {_id: id},
+        { message: newContent },
+        { new: true, runValidators: true }
+      );
+  
+      if (!updatedMessage) {
+        return res.status(404).send({ message: 'Mensaje no encontrado' });
+      }
+  
+      return res.send({ message: 'Mensaje actualizado correctamente' });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).send({ message: 'Error interno del servidor' });
+    }
+  };
+
   export const getUnreadMessages = async (req: Request, res: Response) => {
     try {
       const { userId, otherUserId } = req.params;

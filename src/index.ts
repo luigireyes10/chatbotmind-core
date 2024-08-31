@@ -1,5 +1,4 @@
- import  "reflect-metadata";
-import { ConnectDBMongo } from "./dbmongo";
+import  "reflect-metadata";
 import { startDBConnection } from "./db";
 import { startServer } from "./server";
 
@@ -7,10 +6,8 @@ import { startServer } from "./server";
 require('./config/config');
 
 async function main() {
-    //await ConnectDBMongo()
     await startDBConnection()
     await startServer()
 }
 
 main()
-

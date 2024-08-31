@@ -1,0 +1,1 @@
+export const MONUMENTAL_SERVICE_URL = process.env.MONUMENTAL_SERVICE_URL

@@ -1,12 +1,12 @@
 import { Connection, createConnection } from "typeorm"
 import colors from "colors"
-
+import ormconfig from '../ormconfig.dev'
 /**
  * @description Iniciar la conexion con la base de datos
  */
 export async function startDBConnection(): Promise<void> {
     try {
-        const connection: Connection = await createConnection()
+        const connection: Connection = await createConnection(ormconfig)
         
         if (connection.isConnected) {
             console.log(
