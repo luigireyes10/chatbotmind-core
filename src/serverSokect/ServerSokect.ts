@@ -28,6 +28,7 @@ import { get } from 'request'
 import path from 'path'
 import { defaultQuery } from '../helpers/repositoryOperations'
 import { getRepository, Repository } from 'typeorm'
+import fetch from 'node-fetch';
 
 let sampleText
 
@@ -113,8 +114,23 @@ export const ServerSokect = async (app: any, server: any): Promise<void> => {
 
         console.log('Reseiver:', message)
 
-        io.emit('message-received', { status: 'OK', message })
+        const url = 'https://mindbots-api-qa.azurewebsites.net/api/SarchDocumentsTest';
+      io.emit('message-received', { status: 'OK', message })
         console.log('Enviando respuesta al cliente...:', message)
+
+
+      const data = {
+        prompt: message
+      };
+      console.log('Enviando mensaje al servidor:', data);
+      
+      fetch.post(url, data)
+      .then(response => {
+      console.log('Respuesta del servidor:', response.data);
+
+      io.emit('message-received-ia', { status: 'OK',  response: response.data })
+
+      })
 
         //  let NewMessage = sampleTextMessage();
 
