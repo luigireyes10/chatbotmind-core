@@ -106,42 +106,77 @@ export const ServerSokect = async (app: any, server: any): Promise<void> => {
       let userMessagesCache = {}
       socket.emit('connection', null)
 
-      socket.on('new-message', (message, callback) => {
-        console.log('Received message:', message)
-        console.log('Socket ID of sender is:', socket.id)
-        // Procesa el mensaje aquí y responde si es necesario
-        console.log('Emitiendo mensaje:', { status: 'OK', message })
-
-        console.log('Reseiver:', message)
-
-        const url = 'https://mindbots-api-qa.azurewebsites.net/api/SarchDocumentsTest';
-      io.emit('message-received', { status: 'OK', message })
-        console.log('Enviando respuesta al cliente...:', message)
-
-
-      const data = {
-        prompt: message
-      };
-      console.log('Enviando mensaje al servidor:', data);
+      socket.on('new-message', async (message, callback) => {
+          console.log('Received message:', message);
+          console.log('Socket ID of sender is:', socket.id);
+          // Procesa el mensaje aquí y responde si es necesario
+          console.log('Emitiendo mensaje:', { status: 'OK', message });
       
-      fetch.post(url, data)
-      .then(response => {
-      console.log('Respuesta del servidor:', response.data);
-
-      io.emit('message-received-ia', { status: 'OK',  response: response.data })
-
-      })
-
-        //  let NewMessage = sampleTextMessage();
-
-        // Llama al callback para confirmar la recepción del mensaje
-        callback({ status: 'OK', message: 'Mensaje recibido correctamente' })
-      })
-
-  
-
-
-
+          console.log('Receiver:', message);
+      
+          const url = 'https://unirmindbotspoc-qa.azurewebsites.net/api/SarchDocumentsTest';
+          io.emit('message-received', { status: 'OK', message });
+          console.log('Enviando respuesta al cliente...:', message);
+      
+          const data = {
+              prompt: message
+          };
+          console.log('Enviando mensaje al servidor:', data);
+      
+          try {
+              const response = await fetch(url, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(data)
+              });
+      
+              const contentType = response.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                  const responseData = await response.json();
+                  console.log('Respuesta del servidor:', responseData);
+      
+                  // Parsear nl_response si es una cadena JSON
+                  let parsedNlResponse;
+                  try {
+                      parsedNlResponse = JSON.parse(responseData.nl_response.replace(/\\n/g, '\n'));
+                  } catch (e) {
+                      parsedNlResponse = responseData.nl_response;
+                  }
+                  
+                  
+      
+                  io.emit('message-received-ia', { 
+                    status: 'OK', 
+                    nl_response: parsedNlResponse.nl_response || parsedNlResponse, 
+                    user: '66411fc7f5a1513e647b28d3', 
+                    semantic_results: parsedNlResponse.semantic_results || responseData.semantic_results 
+                });
+                
+              } else {
+                const textResponse = await response.text();
+                console.error('Respuesta no es JSON:', textResponse);
+                io.emit('message-received-ia', { 
+                    nl_response: textResponse, 
+                    user: '66411fc7f5a1513e647b28d3', 
+                    semantic_results: null 
+                });
+                
+              }
+          } catch (error) {
+              console.error('Error al enviar mensaje al servidor:', error);
+              io.emit('message-received-ia', { 
+                  status: 'ERROR', 
+                  nl_response: error.message, 
+                  user: '66411fc7f5a1513e647b28d3', 
+                  semantic_results: null 
+              });
+          }
+      
+          // Llama al callback para confirmar la recepción del mensaje
+          callback({ status: 'OK', message: 'Mensaje recibido correctamente' });
+      });
       socket.on('newProspect', (data, callback) => {
         // Aquí puedes emitir el evento a todos los clientes conectados
         io.emit('prospectReceived', data)
