@@ -106,15 +106,11 @@ export const ServerSokect = async (app: any, server: any): Promise<void> => {
       let userMessagesCache = {}
       socket.emit('connection', null)
 
-      socket.on('new-message', async (message, callback) => {
-          console.log('Received message:', message);
+            socket.on('new-message', async (message, callback) => {
           console.log('Socket ID of sender is:', socket.id);
-          // Procesa el mensaje aquí y responde si es necesario
-          console.log('Emitiendo mensaje:', { status: 'OK', message });
+          console.log('Mensaje url:', message.url);
       
-          console.log('Receiver:', message);
-      
-          const url = 'https://unirmindbotspoc-qa.azurewebsites.net/api/SarchDocumentsTest';
+          const url = message.url;
           io.emit('message-received', { status: 'OK', message });
           console.log('Enviando respuesta al cliente...:', message);
       
@@ -124,55 +120,78 @@ export const ServerSokect = async (app: any, server: any): Promise<void> => {
           console.log('Enviando mensaje al servidor:', data);
       
           try {
-              const response = await fetch(url, {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(data)
-              });
-      
-              const contentType = response.headers.get('content-type');
-              if (contentType && contentType.includes('application/json')) {
-                  const responseData = await response.json();
-                  console.log('Respuesta del servidor:', responseData);
-      
-                  // Parsear nl_response si es una cadena JSON
-                  let parsedNlResponse;
-                  try {
-                      parsedNlResponse = JSON.parse(responseData.nl_response.replace(/\\n/g, '\n'));
-                  } catch (e) {
-                      parsedNlResponse = responseData.nl_response;
-                  }
-                  
-                  
-      
-                  io.emit('message-received-ia', { 
-                    status: 'OK', 
-                    nl_response: parsedNlResponse.nl_response || parsedNlResponse, 
-                    user: '66411fc7f5a1513e647b28d3', 
-                    semantic_results: parsedNlResponse.semantic_results || responseData.semantic_results 
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+        
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const responseData = await response.json();
+                console.log('Respuesta del servidor:', responseData);
+        
+                // Manejar la respuesta específica de la URL FindSQL
+                if (url === 'https://unirmindbotspoc-qa.azurewebsites.net/api/FindSQL') {
+                  io.emit('message-received-ia', {
+                    status: 'OK',
+                    nl_response: responseData.query,
+                    user: '66411fc7f5a1513e647b28d3',
+                    semantic_results: responseData.db_result,
+                    message_type: 3,
+
                 });
-                
-              } else {
+                } else {
+                    // Parsear nl_response si es una cadena JSON
+                    let parsedNlResponse;
+                    try {
+                        parsedNlResponse = JSON.parse(responseData.nl_response.replace(/\\n/g, '\n'));
+                    } catch (e) {
+                        parsedNlResponse = responseData.nl_response;
+                    }
+        
+                    io.emit('message-received-ia', {
+                        status: 'OK',
+                        nl_response: parsedNlResponse.nl_response || parsedNlResponse,
+                        user: '66411fc7f5a1513e647b28d3',
+                        message_type: 2,
+                        semantic_results: parsedNlResponse.semantic_results || responseData.semantic_results
+                    });
+                }
+            } else {
                 const textResponse = await response.text();
-                console.error('Respuesta no es JSON:', textResponse);
-                io.emit('message-received-ia', { 
-                    nl_response: textResponse, 
-                    user: '66411fc7f5a1513e647b28d3', 
-                    semantic_results: null 
+                if ( url !== 'https://unirmindbotspoc-qa.azurewebsites.net/api/FindSQL') {
+                console.error('Respuesta JSON text:', textResponse);
+                io.emit('message-received-ia', {
+                    status: 'ERROR',
+                    nl_response: textResponse,
+                    user: '66411fc7f5a1513e647b28d3',
+                    message_type: 2,
                 });
-                
-              }
-          } catch (error) {
-              console.error('Error al enviar mensaje al servidor:', error);
-              io.emit('message-received-ia', { 
-                  status: 'ERROR', 
-                  nl_response: error.message, 
-                  user: '66411fc7f5a1513e647b28d3', 
-                  semantic_results: null 
-              });
-          }
+              } else {
+                console.error('Respuesta JSON sql:', textResponse);
+                io.emit('message-received-ia', {
+                  status: 'ERROR',
+                  nl_response: textResponse,
+                  user: '66411fc7f5a1513e647b28d3',
+                  semantic_results: null,
+                  message_type: 3,
+                  query: textResponse.query
+
+              });}
+            }
+        } catch (error) {
+            console.error('Error al enviar mensaje al servidor:', error);
+            io.emit('message-received-ia', {
+                status: 'ERROR',
+                nl_response: error.message,
+                message_type: 2,
+                user: '66411fc7f5a1513e647b28d3',
+                semantic_results: null
+            });
+        }
       
           // Llama al callback para confirmar la recepción del mensaje
           callback({ status: 'OK', message: 'Mensaje recibido correctamente' });
